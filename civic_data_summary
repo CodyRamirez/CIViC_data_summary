@@ -1,10 +1,25 @@
-"""This code queries the CIViC API for all evidence items,
-filters out duplicated pubmed IDs, and returns counts of all
-parameters listed along with pie chart summaries in svg format"""
+"""This code queries the CIViC API for all evidence items, filters out duplicated pubmed IDs, and returns counts of all parameters listed along with pie chart summaries in svg format"""
 
-import argparse, json, requests, subprocess, transvar, matplotlib, collections, numpy
+import json, requests, matplotlib, numpy, operator#, ggplot
+import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
+# N/A, Adverse Respone, Negative, Positive, Poor Outcome, Better Outcome, Resistance or Non-Response, Sensitivity
+clinical_significance_colors = ['#b3b3b3', '#800080', '#fbb03b', '#ffff00', '#04ad04', '#c2f73e', '#e0ffff', '#87cefa']
+# Inferential, Preclinical, Case Study, Clinical, Validated
+evidence_level_colors = ['#e24759', '#f68f37', '#616eb2', '#08b1e6', '#33b358']
+# 1 Star -> 5 Stars
+trust_rating_colors = ['#ed2224', '#faa51a', '#f6eb16', '#9bcb3c', '#0f8140']
+# Predictive, Prognostic, Diagnostic
+evidence_type_colors = ['#0000ff', '#037737', '#f15a24']
+# Somatic mutations, N/A, Germline Polymorphism, Germline Mutation, Unknown
+variant_origin_colors = ['#87cefa', '#b3b3b3', '#08b1e6', '#e0ffff', '#0016b2']
+
+clinical_significance_legend_colors = [mpatches.Patch(facecolor = clinical_significance_colors[7], edgecolor = 'black', label = 'Sensitivity'), mpatches.Patch(facecolor = clinical_significance_colors[6], edgecolor = 'black', label = 'Resistance'), mpatches.Patch(facecolor = clinical_significance_colors[5], edgecolor = 'black', label = 'Better Outcome'), mpatches.Patch(facecolor = clinical_significance_colors[4], edgecolor = 'black', label = 'Poor Outcome'), mpatches.Patch(facecolor = clinical_significance_colors[3], edgecolor = 'black', label = 'Positive'), mpatches.Patch(facecolor = clinical_significance_colors[2], edgecolor = 'black', label = 'Negative'), mpatches.Patch(facecolor = clinical_significance_colors[1], edgecolor = 'black', label = 'Adverse Response'), mpatches.Patch(facecolor = clinical_significance_colors[0], edgecolor = 'black', label = 'N/A')]
+trust_rating_legend_colors = [mpatches.Patch(facecolor = trust_rating_colors[4], edgecolor = 'black', label = '5 Stars'), mpatches.Patch(facecolor = trust_rating_colors[3], edgecolor = 'black', label = '4 Stars'), mpatches.Patch(facecolor = trust_rating_colors[2], edgecolor = 'black', label = '3 Stars'), mpatches.Patch(facecolor = trust_rating_colors[1], edgecolor = 'black', label = '2 Stars'), mpatches.Patch(facecolor = trust_rating_colors[0], edgecolor = 'black', label = '1 Star')]
+evidence_level_legend_colors = [mpatches.Patch(facecolor = evidence_level_colors[4], edgecolor = 'black', label = 'Validated'), mpatches.Patch(facecolor = evidence_level_colors[3], edgecolor = 'black', label = 'Clinical'), mpatches.Patch(facecolor = evidence_level_colors[2], edgecolor = 'black', label = 'Case Study'), mpatches.Patch(facecolor = evidence_level_colors[1], edgecolor = 'black', label = 'Preclinical'), mpatches.Patch(facecolor = evidence_level_colors[0], edgecolor = 'black', label = 'Inferential')]
+evidence_type_legend_colors = [mpatches.Patch(facecolor = evidence_type_colors[2], edgecolor = 'black', label = 'Diagnostic'), mpatches.Patch(facecolor = evidence_type_colors[1], edgecolor = 'black', label = 'Prognostic'), mpatches.Patch(facecolor = evidence_type_colors[0], edgecolor = 'black', label = 'Predictive')]
 
 # Indexs from left to right are: Accepted, Rejected, Submitted
 evidence_status_master = [0]*3
@@ -46,40 +61,38 @@ for key,value in evidence.items():
 	elif value['status'] == 'accepted':
 		evidence_status_master[0] += 1
 
-		if value['pubmed_id'] not in publications:
-
-			publications[value['pubmed_id']] = 1
-
-			if value['citation'].split(',')[-1].replace(".", "").upper() not in accepted_unique_journals:
-				accepted_unique_journals[value['citation'].split(',')[-1].replace(".", "").upper()] = 1
-			else:
-				accepted_unique_journals[value['citation'].split(',')[-1].replace(".", "").upper()] += 1
-
-			year = ''
-			for index in value['citation']:
-				if index.isdigit() == True:
-					year += index
-			if year != '':
-				if year not in year_list:
-					year_list[year] = 1
-				else:
-					year_list[year] += 1
-
+		if value['citation'].split(',')[-1].replace(".", "").upper() not in accepted_unique_journals:
+			accepted_unique_journals[value['citation'].split(',')[-1].replace(".", "").upper()] = 1
 		else:
-			publications[value['pubmed_id']] += 1
-
+			accepted_unique_journals[value['citation'].split(',')[-1].replace(".", "").upper()] += 1
 
 	elif value['status'] == 'submitted':
 		evidence_status_master[2] += 1
 
 	
 	if value['status'] != 'rejected':
-		
+
+		if value['pubmed_id'] not in publications:
+			publications[value['pubmed_id']] = 1
+		else:
+			publications[value['pubmed_id']] += 1
+
+		for index in range(0, len(value['drugs'])):
+			if value['drugs'][index]['name'].upper() not in unique_drugs:
+				unique_drugs[value['drugs'][index]['name'].upper()] = 1
+			else:
+				unique_drugs[value['drugs'][index]['name'].upper()] += 1
+
 		if value['citation'].split(',')[-1].replace(".", "").upper() not in unique_journals:
 			unique_journals[value['citation'].split(',')[-1].replace(".", "").upper()] = 1
 		else:
 			unique_journals[value['citation'].split(',')[-1].replace(".", "").upper()] += 1
 
+		if value['disease']['name'].upper() not in unique_disease:
+			unique_disease[value['disease']['name'].upper()] = 1
+		else:
+			unique_disease[value['disease']['name'].upper()] += 1
+		
 		if value['evidence_type'] == 'Prognostic':
 			evidence_type_master[0] += 1
 		if value['evidence_type'] == 'Diagnostic':
@@ -141,190 +154,271 @@ for key,value in evidence.items():
 			variant_origin_master[3] += 1
 		if value['variant_origin'] == 'N/A':
 			variant_origin_master[4] += 1
-		# if value['variant_origin'] == None:
-		# 	print(value['id'])
-
-		if value['disease']['doid'] not in unique_disease:
-			unique_disease[value['disease']['doid']] = 1
-
-		for index in range(0, len(value['drugs'])):
-			if value['drugs'][index]['id'] not in unique_drugs:
-				unique_drugs[value['drugs'][index]['id']] = 1
 
 
+number_of_top = -25
+sorted_unique_journals = sorted(unique_journals.items(), key = operator.itemgetter(1))[number_of_top:]
+sorted_unique_disease = sorted(unique_disease.items(), key = operator.itemgetter(1))[number_of_top:]
+sorted_unique_drugs = sorted(unique_drugs.items(), key = operator.itemgetter(1))[number_of_top:]
 
-
-
-number_of_top_journals = -25
-sorted_accepted_unique_journals = sorted(accepted_unique_journals.iteritems(), key = lambda x:x[1])[number_of_top_journals:]
-journals_x_ticks = []
+x_ticks = []
 journals_labels = []
 journals_counts = []
-for i in range(0,len(sorted_accepted_unique_journals)):
-	journals_x_ticks.append(i)
-	journals_labels.append(str(sorted_accepted_unique_journals[i][0]))
-	journals_counts.append(int(sorted_accepted_unique_journals[i][1]))
+
+disease_labels = []
+disease_counts = []
+
+drugs_labels = []
+drugs_counts = []
 
 
-# print(journals_labels)
-top_journal_evidence_level_a = [0]*len(journals_labels)
-top_journal_evidence_level_b = [0]*len(journals_labels)
-top_journal_evidence_level_c = [0]*len(journals_labels)
-top_journal_evidence_level_d = [0]*len(journals_labels)
-top_journal_evidence_level_e = [0]*len(journals_labels)
+for i in range(0,len(sorted_unique_journals)):
+	x_ticks.append(i)
+	journals_labels.append(str(sorted_unique_journals[i][0]))
+	journals_counts.append(int(sorted_unique_journals[i][1]))
 
-top_journal_trust_rating_1 = [0]*len(journals_labels)
-top_journal_trust_rating_2 = [0]*len(journals_labels)
-top_journal_trust_rating_3 = [0]*len(journals_labels)
-top_journal_trust_rating_4 = [0]*len(journals_labels)
-top_journal_trust_rating_5 = [0]*len(journals_labels)
+for i in range(0, len(sorted_unique_disease)):
+	disease_labels.append(str(sorted_unique_disease[i][0]))
+	disease_counts.append(int(sorted_unique_disease[i][1]))
+
+for i in range(0, len(sorted_unique_drugs)):
+	drugs_labels.append(str(sorted_unique_drugs[i][0]))
+	drugs_counts.append(int(sorted_unique_drugs[i][1]))
+
+# TOP JOURNAL DATA, From left to right: Inferential(E), Preclinical(D), Case Study(C), Clinical(B), Validated(A)
+top_journal_evidence_level = [[0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels)]
+# TOP JOURNAL DATA, From left to right: 1 Star -> 5 Stars
+top_journal_trust_rating = [[0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels)]
+# TOP JOURNAL DATA, From left to right: Predictive, Prognostic, Diagnostic
+top_journal_evidence_type = [[0]*len(journals_labels), [0]*len(journals_labels), [0]*len(journals_labels)]
+# TOP DISEASE DATA, From left to right: Inferential, Preclinical, Case Study, Clinical, Validated
+top_disease_evidence_level = [[0]*len(disease_labels), [0]*len(disease_labels), [0]*len(disease_labels), [0]*len(disease_labels), [0]*len(disease_labels)]
+# TOP DISEASE DATA, From left to right: Predictive, Prognostic, Diagnostic
+top_disease_evidence_type = [[0]*len(disease_labels), [0]*len(disease_labels), [0]*len(disease_labels)]
+# TOP DRUG DATA, From left to right: Inferential(E), Preclinical(D), Case Study(C), Clinical(B), Validated(A)
+top_drugs_evidence_level = [[0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels)]
+# TOP DRUG DATA, From left to right: N/A, Adverse Respone, Negative, Positive, Poor Outcome, Better Outcome, Resistance or Non-Response, Senseitivity
+top_drugs_clin_sign = [[0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels), [0]*len(drugs_labels)]
 
 
 for key,value in evidence.items():
-	
-	if value['status'] == 'accepted':
-		
-		if value['pubmed_id'] not in publication_filter :
-			publication_filter[value['pubmed_id']] = 1
-			
-			for journal_index in range(0, len(journals_labels)):
-				
-				if value['citation'].split(',')[-1].replace(".", "").upper() == journals_labels[journal_index] :
-					# print(journals_labels[journal_index])
+
+	if value['status'] != 'rejected':
+		for journal_index in range(0, len(journals_labels)):
+			if value['citation'].split(',')[-1].replace(".", "").upper() == journals_labels[journal_index] :
+
+				if value['evidence_level'] == 'A':
+					top_journal_evidence_level[4][journal_index] += 1
+				if value['evidence_level'] == 'B':
+					top_journal_evidence_level[3][journal_index] += 1
+				if value['evidence_level'] == 'C':
+					top_journal_evidence_level[2][journal_index] += 1
+				if value['evidence_level'] == 'D':
+					top_journal_evidence_level[1][journal_index] += 1
+				if value['evidence_level'] == 'E':
+					top_journal_evidence_level[0][journal_index] += 1
+
+				if value['rating'] == 5:
+					top_journal_trust_rating[4][journal_index] += 1
+				if value['rating'] == 4:
+					top_journal_trust_rating[3][journal_index] += 1
+				if value['rating'] == 3:
+					top_journal_trust_rating[2][journal_index] += 1
+				if value['rating'] == 2:
+					top_journal_trust_rating[1][journal_index] += 1
+				if value['rating'] == 1:
+					top_journal_trust_rating[0][journal_index] += 1
+
+				if value['evidence_type'] == "Diagnostic":
+					top_journal_evidence_type[2][journal_index] += 1
+				if value['evidence_type'] == "Prognostic":
+					top_journal_evidence_type[1][journal_index] += 1
+				if value['evidence_type'] == "Predictive":
+					top_journal_evidence_type[0][journal_index] += 1
+
+		for disease_index in range(0, len(disease_labels)):
+			if value['disease']['name'].upper() == disease_labels[disease_index] :
+
+				if value['evidence_level'] == 'A':
+					top_disease_evidence_level[4][disease_index] += 1
+				if value['evidence_level'] == 'B':
+					top_disease_evidence_level[3][disease_index] += 1
+				if value['evidence_level'] == 'C':
+					top_disease_evidence_level[2][disease_index] += 1
+				if value['evidence_level'] == 'D':
+					top_disease_evidence_level[1][disease_index] += 1
+				if value['evidence_level'] == 'E':
+					top_disease_evidence_level[0][disease_index] += 1
+
+				if value['evidence_type'] == "Diagnostic":
+					top_disease_evidence_type[2][disease_index] += 1
+				if value['evidence_type'] == "Prognostic":
+					top_disease_evidence_type[1][disease_index] += 1
+				if value['evidence_type'] == "Predictive":
+					top_disease_evidence_type[0][disease_index] += 1
+
+		for drug_index in range(0, len(drugs_labels)):
+			for index in range(0, len(value['drugs'])):
+				if value['drugs'][index]['name'].upper() == drugs_labels[drug_index] :
 
 					if value['evidence_level'] == 'A':
-						top_journal_evidence_level_a[journal_index] += 1
+						top_drugs_evidence_level[4][drug_index] += 1
 					if value['evidence_level'] == 'B':
-						top_journal_evidence_level_b[journal_index] += 1
+						top_drugs_evidence_level[3][drug_index] += 1
 					if value['evidence_level'] == 'C':
-						top_journal_evidence_level_c[journal_index] += 1
+						top_drugs_evidence_level[2][drug_index] += 1
 					if value['evidence_level'] == 'D':
-						top_journal_evidence_level_d[journal_index] += 1
+						top_drugs_evidence_level[1][drug_index] += 1
 					if value['evidence_level'] == 'E':
-						top_journal_evidence_level_e[journal_index] += 1
+						top_drugs_evidence_level[0][drug_index] += 1
 
-					if value['rating'] == 1:
-						top_journal_trust_rating_1[journal_index] += 1
-					if value['rating'] == 2:
-						top_journal_trust_rating_2[journal_index] += 1
-					if value['rating'] == 3:
-						top_journal_trust_rating_3[journal_index] += 1
-					if value['rating'] == 4:
-						top_journal_trust_rating_4[journal_index] += 1
-					if value['rating'] == 5:
-						top_journal_trust_rating_5[journal_index] += 1
-
+					if value['clinical_significance'] == 'Sensitivity':
+						top_drugs_clin_sign[7][drug_index] += 1
+					if value['clinical_significance'] == 'Resistance or Non-Response':
+						top_drugs_clin_sign[6][drug_index] += 1
+					if value['clinical_significance'] == 'Better Outcome':
+						top_drugs_clin_sign[5][drug_index] += 1
+					if value['clinical_significance'] == 'Poor Outcome':
+						top_drugs_clin_sign[4][drug_index] += 1
+					if value['clinical_significance'] == 'Positive':
+						top_drugs_clin_sign[3][drug_index] += 1
+					if value['clinical_significance'] == 'Negative':
+						top_drugs_clin_sign[2][drug_index] += 1
+					if value['clinical_significance'] == 'Adverse Response':
+						top_drugs_clin_sign[1][drug_index] += 1
+					if value['clinical_significance'] == 'N/A':
+						top_drugs_clin_sign[0][drug_index] += 1
 
 
 fig = plt.figure()
-e1 = plt.barh(journals_x_ticks, top_journal_evidence_level_a, color = 'green')
-e2 = plt.barh(journals_x_ticks, top_journal_evidence_level_b, color = 'yellowgreen')
-e3 = plt.barh(journals_x_ticks, top_journal_evidence_level_c, color = 'yellow')
-e4 = plt.barh(journals_x_ticks, top_journal_evidence_level_d, color = 'orange')
-e5 = plt.barh(journals_x_ticks, top_journal_evidence_level_e, color = 'red')
-plt.yticks(journals_x_ticks, journals_labels)
-plt.xticks(numpy.arange(0, 81, 10))
-plt.legend((e1[0], e2[0], e3[0], e4[0], e5[0]), ('Validated', 'Clinical', 'Case Study', 'Preclinical', 'Inferential'))
+x_offset = numpy.array([0.0] * len(journals_labels))
+for row in range(len(top_journal_evidence_type)):
+	plt.barh(x_ticks, top_journal_evidence_type[row], left = x_offset, color = evidence_type_colors[row])
+	x_offset = x_offset + top_journal_evidence_type[row]
+	plt.yticks(x_ticks, journals_labels)
+	plt.xticks(numpy.arange(0, 160, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_type_legend_colors)
 plt.ylabel('Journals')
-plt.xlabel('Number of Articles')
-plt.title('Top 25 Unique Journals mined in CIViC')
-fig.savefig('CIViC_journals_mined_evidence_level.png', format = 'png')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Journals mined in CIViC')
+fig.savefig('CIViC_journals_mined_evidence_type.svg', format = 'svg')
 
 
 fig = plt.figure()
-r1 = plt.barh(journals_x_ticks, top_journal_trust_rating_5, color = 'green')
-r2 = plt.barh(journals_x_ticks, top_journal_trust_rating_4, color = 'yellowgreen')
-r3 = plt.barh(journals_x_ticks, top_journal_trust_rating_3, color = 'yellow')
-r4 = plt.barh(journals_x_ticks, top_journal_trust_rating_2, color = 'orange')
-r5 = plt.barh(journals_x_ticks, top_journal_trust_rating_1, color = 'red')
-plt.yticks(journals_x_ticks, journals_labels)
-plt.xticks(numpy.arange(0, 81, 10))
-plt.legend((r1[0], r2[0], r3[0], r4[0], r5[0]), ('5 Stars', '4 Stars', '3 Stars', '2 Stars', '1 Star'))
+x_offset = numpy.array([0.0] * len(journals_labels))
+for row in range(len(top_journal_evidence_level)):
+	plt.barh(x_ticks, top_journal_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
+	x_offset = x_offset + top_journal_evidence_level[row]
+	plt.yticks(x_ticks, journals_labels)
+	plt.xticks(numpy.arange(0, 160, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
 plt.ylabel('Journals')
-plt.xlabel('Number of Articles')
-plt.title('Top 25 Unique Journals mined in CIViC')
-fig.savefig('CIViC_journals_mined_trust_ratings.png', format = 'png')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Journals mined in CIViC')
+fig.savefig('CIViC_journals_mined_evidence_level.svg', format = 'svg')
 
 
 fig = plt.figure()
-plt.barh(journals_x_ticks, journals_counts)
-plt.yticks(journals_x_ticks, journals_labels)
+x_offset = numpy.array([0.0] * len(journals_labels))
+for row in range(len(top_journal_trust_rating)):
+	plt.barh(x_ticks, top_journal_trust_rating[row], left = x_offset, color = trust_rating_colors[row])
+	x_offset = x_offset + top_journal_trust_rating[row]
+	plt.yticks(x_ticks, journals_labels)
+	plt.xticks(numpy.arange(0, 160, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Star Rating:', handles = trust_rating_legend_colors)
 plt.ylabel('Journals')
-plt.xlabel('Number of Articles')
-plt.title('Top 25 Unique Journals mined in CIViC')
-fig.savefig('CIViC_journals_mined.svg', format = 'svg')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Journals mined in CIViC')
+fig.savefig('CIViC_journals_mined_trust_ratings.svg', format = 'svg')
 
 
-years = []
-pubs_in_year = []
-year_labels = []
-sorted_year_list = collections.OrderedDict(sorted(year_list.items()))
-for i in sorted_year_list:
-	years.append(int(i))
-	if int(i)%2 != 0:
-		year_labels.append(str(i))
-	else:
-		year_labels.append('')
-	pubs_in_year.append(year_list[i])
+# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Diseases, Broken down by Evidence Level
 fig = plt.figure()
-plt.bar(years, pubs_in_year, align = 'center')
-plt.xticks(years, year_labels, rotation = 'vertical')
-plt.xlabel('Article Publication Year')
-plt.ylabel('Number of Unique Articles')
-plt.title('Articles Accepted in CIViC')
-fig.savefig('CIViC_articles_pub_years.svg', format = 'svg')
+x_offset = numpy.array([0.0] * len(disease_labels))
+for row in range(len(top_disease_evidence_level)):
+	plt.barh(x_ticks, top_disease_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
+	x_offset = x_offset + top_disease_evidence_level[row]
+	plt.yticks(x_ticks, disease_labels)
+	plt.xticks(numpy.arange(0, 240, 20))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
+plt.ylabel('Diseases')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Diseases mined in CIViC')
+fig.savefig('CIViC_diseases_mined_evidence_level.svg', format = 'svg')
 
 
-evid_vs_pub_list = {}
-for key,value in publications.items():
-	if value not in evid_vs_pub_list:
-		evid_vs_pub_list[value] = 1
-	else:
-		evid_vs_pub_list[value] += 1
-evid_vs_pub_list_x_ticks = []
-evid_vs_pub_list_counts = []
-sorted_evid_vs_pub_list = sorted(evid_vs_pub_list.iteritems())
-for i in range(0, len(sorted_evid_vs_pub_list)):
-	evid_vs_pub_list_x_ticks.append(sorted_evid_vs_pub_list[i][0])
-	evid_vs_pub_list_counts.append(sorted_evid_vs_pub_list[i][1])
+# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Diseases, Broken down by Evidence Type
 fig = plt.figure()
-plt.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center')
-plt.xlabel('# of Evidence Items')
-plt.ylabel('# of Publications')
-fig.savefig('CIViC_evidence_vs_publications.png', format = 'png')
+x_offset = numpy.array([0.0] * len(disease_labels))
+for row in range(len(top_disease_evidence_type)):
+	plt.barh(x_ticks, top_disease_evidence_type[row], left = x_offset, color = evidence_type_colors[row])
+	x_offset = x_offset + top_disease_evidence_type[row]
+	plt.yticks(x_ticks, disease_labels)
+	plt.xticks(numpy.arange(0, 240, 20))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_type_legend_colors)
+plt.ylabel('Diseases')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Diseases mined in CIViC')
+fig.savefig('CIViC_diseases_mined_evidence_type.svg', format = 'svg')
+
+
+# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Evidence Level
+fig = plt.figure()
+x_offset = numpy.array([0.0] * len(drugs_labels))
+for row in range(len(top_drugs_evidence_level)):
+	plt.barh(x_ticks, top_drugs_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
+	x_offset = x_offset + top_drugs_evidence_level[row]
+	plt.yticks(x_ticks, drugs_labels)
+	plt.xticks(numpy.arange(0, 100, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_level_legend_colors)
+plt.ylabel('Drugs')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Drugs mined in CIViC')
+fig.savefig('CIViC_drugs_mined_evidence_level.svg', format = 'svg')
+
+
+# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Clinical Significance
+fig = plt.figure()
+x_offset = numpy.array([0.0] * len(drugs_labels))
+for row in range(len(top_drugs_clin_sign)):
+	plt.barh(x_ticks, top_drugs_clin_sign[row], left = x_offset, color = clinical_significance_colors[row])
+	x_offset = x_offset + top_drugs_clin_sign[row]
+	plt.yticks(x_ticks, drugs_labels)
+	plt.xticks(numpy.arange(0, 100, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = clinical_significance_legend_colors)
+plt.ylabel('Drugs')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Drugs mined in CIViC')
+fig.savefig('CIViC_drugs_mined_clinical_significance.svg', format = 'svg')
 
 
 
-
-
-print('\nUnique Journals: ' + str(len(unique_journals)))
-print('Diseases: ' + str(len(unique_disease)))
-print('Unique Drugs: ' + str(len(unique_drugs)) + '\n')
-
-
+# Creates a pie chart of evidence status
 print('Unique Evidence IDs: ' + str(sum(evidence_status_master)))
 print('\tAccepted: ' + str(evidence_status_master[0]))
 print('\tRejected: ' + str(evidence_status_master[1]))
 print('\tSubmitted: ' + str(evidence_status_master[2]) + '\n')
 fig = plt.figure()
-plt.pie(evidence_status_master, labels = ['Accepted', 'Rejected', 'Submitted'], colors = ['red', 'gold', 'lightskyblue'], autopct='%1.1f%%', pctdistance = 0.65)
+plt.pie(evidence_status_master, labels = ['Accepted', 'Rejected', 'Submitted'], colors = ['green', 'red', 'orange'], autopct='%1.1f%%', pctdistance = 0.65)
 plt.axis('equal')
 plt.title('Total Evidence Status (' + str(sum(evidence_status_master)) + ')')
 fig.savefig('CIViC_evidence_status.svg', format = 'svg')
 
 
+# Creates a pie chart of evidence type for only ACCEPTED and SUBMITTED evidence records
 print('All stats from now on only take into account unique accepted or submitted journals with evidence items')
 print('\nEvidence Type Total: ' + str(sum(evidence_type_master)))
 print('\tPrognostic: ' + str(evidence_type_master[0]))
 print('\tDiagnostic: ' + str(evidence_type_master[1]))
 print('\tPredictive: ' + str(evidence_type_master[2]))
 fig = plt.figure()
-plt.pie(evidence_type_master, labels = ['Prognostic', 'Diagnostic', 'Predictive'], colors = ['red', 'gold', 'lightskyblue'], autopct='%1.1f%%', startangle = 90)
+plt.pie(evidence_type_master, labels = ['Prognostic', 'Diagnostic', 'Predictive'], colors = ['#037737', '#f15a24', '#0000ff'], autopct='%1.1f%%', startangle = 90)
 plt.axis('equal')
 plt.title('Total Evidence Type (' + str(sum(evidence_type_master)) + ')')
 fig.savefig('CIViC_evidence_type.svg', format = 'svg')
 
 
+# Creates a pie chart of clinical significance for only ACCEPTED and SUBMITTED evidence records
 print('\nClinical Significance Total:' + str(sum(clinical_significance_master)))
 print('\tSensitivity: ' + str(clinical_significance_master[0]))
 print('\tAdverse Response: ' + str(clinical_significance_master[1]))
@@ -335,22 +429,24 @@ print('\tBetter Outcome: ' + str(clinical_significance_master[5]))
 print('\tPoor Outcome: ' + str(clinical_significance_master[6]))
 print('\tN/A: ' + str(clinical_significance_master[7]))
 fig = plt.figure()
-plt.pie(clinical_significance_master, labels = ['Sensitivity', 'Adverse Response', 'Resistance or Non-Response', 'Negative', 'Positive', 'Better Outcome', 'Poor Outcome', 'N/A'], autopct = '%1.1f%%', pctdistance=0.9, labeldistance=1.1, startangle = 40, colors = ['lightskyblue', 'purple', 'lightcyan', 'gold', 'yellow', 'yellowgreen', 'green', 'red'])
+plt.pie(clinical_significance_master, labels = ['Sensitivity', 'Adverse Response', 'Resistance or Non-Response', 'Negative', 'Positive', 'Better Outcome', 'Poor Outcome', 'N/A'], autopct = '%1.1f%%', pctdistance=0.9, labeldistance=1.1, startangle = 40, colors = ['#87cefa', '#800080', '#e0ffff', '#fbb03b', '#ffff00', '#c2f73e', '#04ad04', '#b3b3b3'])
 plt.axis('equal')
 plt.title('Total Clinical Significance (' + str(sum(clinical_significance_master)) + ')')
 fig.savefig('CIViC_clinical_significance.svg', format = 'svg')
 
 
+# Creates a pie chart of evidence direction for only ACCEPTED and SUBMITTED evidence records
 print('\nEvidence direction Total: ' + str(sum(evidence_direction_master)))
 print('\tSupports: ' + str(evidence_direction_master[0]))
 print('\tDoes Not Support: ' + str(evidence_direction_master[1]))
 fig = plt.figure()
-plt.pie(evidence_direction_master, labels = ['Supports', 'Does Not Support'], colors = ['gold', 'lightskyblue'], autopct='%1.1f%%', startangle = 180)
+plt.pie(evidence_direction_master, labels = ['Supports', 'Does Not Support'], colors = ['green', 'red'], autopct='%1.1f%%', startangle = 180)
 plt.axis('equal')
 plt.title('Total Evidence Direction (' + str(sum(evidence_direction_master)) + ')')
 fig.savefig('CIViC_evidence_direction.svg', format = 'svg')
 
 
+# Creates a pie chart of trust ratings for only ACCEPTED and SUBMITTED evidence records
 print('\nTrust Ratings Total: ' + str(sum(trust_rating_master)))
 print('\tTrust 1: ' + str(trust_rating_master[0]))
 print('\tTrust 2: ' + str(trust_rating_master[1]))
@@ -358,12 +454,13 @@ print('\tTrust 3: ' + str(trust_rating_master[2]))
 print('\tTrust 4: ' + str(trust_rating_master[3]))
 print('\tTrust 5: ' + str(trust_rating_master[4]))
 fig = plt.figure()
-plt.pie(trust_rating_master, labels = ['1 Star', '2 Star', '3 Star', '4 Star', '5 Star'], autopct='%1.1f%%')
+plt.pie(trust_rating_master, labels = ['1 Star', '2 Star', '3 Star', '4 Star', '5 Star'], colors = trust_rating_colors, autopct='%1.1f%%')
 plt.axis('equal')
 plt.title('Total Trust Ratings (' + str(sum(trust_rating_master)) + ')')
 fig.savefig('CIViC_trust_ratings.svg', format = 'svg')
 
 
+# Creates a pie chart of evidence level for only ACCEPTED and SUBMITTED evidence records
 print('\nEvidence Level Total: ' + str(sum(evidence_level_master)))
 print('\tA (Validated): ' + str(evidence_level_master[0]))
 print('\tB (Clinical): ' + str(evidence_level_master[1]))
@@ -371,12 +468,13 @@ print('\tC (Case Study: ' + str(evidence_level_master[2]))
 print('\tD (Preclinical): ' + str(evidence_level_master[3]))
 print('\tE (Inferential): ' + str(evidence_level_master[4]))
 fig = plt.figure()
-plt.pie(evidence_level_master, labels = ['A (Validated)', 'B (Clinical)', 'C (Case_study)', 'D (Preclinical)', 'E (Inferential)'], autopct='%1.1f%%')
+plt.pie(evidence_level_master, labels = ['Validated\n(Level A)', 'Clinical\n(Level B)', 'Case study\n(Level C)', 'Preclinical\n(Level D)', 'Inferential\n(Level E)'], colors = evidence_level_colors[::-1], autopct='%1.1f%%')
 plt.axis('equal')
 plt.title('Total Evidence Level (' + str(sum(evidence_level_master)) + ')')
 fig.savefig('CIViC_evidence_level.svg', format = 'svg')
 
 
+# Creates a pie chart of variant origin for only ACCEPTED and SUBMITTED evidence records
 print('\nVariant Origin Total: ' + str(sum(variant_origin_master)))
 print('\tGermline Mutation: ' + str(variant_origin_master[0]))
 print('\tSomatic Mutation: ' + str(variant_origin_master[1]))
@@ -384,7 +482,120 @@ print('\tGermline Polymorphism: ' + str(variant_origin_master[2]))
 print('\tUnknown: ' + str(variant_origin_master[3]))
 print('\tN/A: ' + str(variant_origin_master[4]))
 fig = plt.figure()
-plt.pie(variant_origin_master, labels = ['Germline Mutation', 'Somatic Mutation', 'Germline Polymorphism', 'Unknown', 'N/A'], autopct='%1.1f%%')
+plt.pie(variant_origin_master, labels = ['Germline Mutation', 'Somatic Mutation', 'Germline Polymorphism', 'Unknown', 'N/A'], colors = ['#e0ffff', '#87cefa', '#08b1e6', '#0016b2', '#b3b3b3'], autopct='%1.1f%%')
 plt.axis('equal')
-plt.title('Total Trust Ratings (' + str(sum(trust_rating_master)) + ')')
+plt.title('Total Variant Origin (' + str(sum(trust_rating_master)) + ')')
 fig.savefig('CIViC_variant_origin.svg', format = 'svg')
+
+
+# Creates a bar chart, x-axis: Number of Evidence Records, y-axis: Number of Publications
+evid_vs_pub_list = {}
+for key,value in publications.items():
+	if value not in evid_vs_pub_list:
+		evid_vs_pub_list[value] = 1
+	else:
+		evid_vs_pub_list[value] += 1
+evid_vs_pub_list_x_ticks = []
+evid_vs_pub_list_counts = []
+sorted_evid_vs_pub_list = sorted(evid_vs_pub_list.items(), key = operator.itemgetter(0))
+for i in range(0, len(sorted_evid_vs_pub_list)):
+	evid_vs_pub_list_x_ticks.append(sorted_evid_vs_pub_list[i][0])
+	evid_vs_pub_list_counts.append(sorted_evid_vs_pub_list[i][1])
+fig = plt.figure()
+plt.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center')
+plt.title('Articles Accepted in CIViC')
+plt.xlabel('Number of Evidence Records')
+plt.ylabel('Number of Publications')
+fig.savefig('CIViC_evidence_vs_publications.svg', format = 'svg')
+
+
+author_publication_dict = {}
+open_access_pubs = {}
+closed_access_pubs = {}
+for i in range(1992, 2017):
+	open_access_pubs[str(i)] = 0
+	closed_access_pubs[str(i)] = 0
+
+for key, value in publications.items():
+	found_pmcid = False
+	pubmed_articles = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id="+key+"&retmode=xml").text
+	root = ET.fromstring(pubmed_articles)
+	for authors in root.iter('Author'):
+		if authors.find('ForeName') == None:
+			fore_name = ""
+		else:
+			fore_name = authors.find('ForeName').text.upper()
+		if authors.find('LastName') == None:
+			last_name = ""
+		else:
+			last_name = authors.find('LastName').text.upper()
+		full_name = (fore_name + " " + last_name)
+		if full_name not in author_publication_dict:
+			author_publication_dict[full_name] = 1
+		else:
+			author_publication_dict[full_name] += 1
+	
+	for date in root.iter('PubDate'):
+		if date.find('Year') == None:
+			pub_year = date.find('MedlineDate').text.split()[0]
+		else:
+			pub_year = date.find('Year').text
+	for article_id in root.iter('ArticleId'):
+		if 'pmc' == article_id.attrib['IdType']:
+			found_pmcid = True
+	if found_pmcid == True:
+		if pub_year not in open_access_pubs:
+			open_access_pubs[pub_year] = 1
+		else:
+			open_access_pubs[pub_year] += 1
+	else:
+		if pub_year not in closed_access_pubs:
+			closed_access_pubs[pub_year] = 1
+		else:
+			closed_access_pubs[pub_year] += 1
+
+
+# Creates a stacked bar chart, x-axis: Articles Publication Year, y-axis: Number of Unique Articles, Legend colors: (green - open, red - closed)
+sorted_open_access_pubs_list = sorted(open_access_pubs.items(), key = operator.itemgetter(0))
+sorted_closed_access_pubs_list = sorted(closed_access_pubs.items(), key = operator.itemgetter(0))
+years = []
+open_access_pubs_in_year = []
+closed_access_pubs_in_year = []
+year_labels = []
+for i in range(0, len(sorted_open_access_pubs_list)):
+	years.append(int(sorted_open_access_pubs_list[i][0]))
+	if int(sorted_open_access_pubs_list[i][0])%2 != 0:
+		year_labels.append(str(sorted_open_access_pubs_list[i][0]))
+	else:
+		year_labels.append('')
+	open_access_pubs_in_year.append(sorted_open_access_pubs_list[i][1])
+	closed_access_pubs_in_year.append(sorted_closed_access_pubs_list[i][1])
+fig = plt.figure()
+pub1 = plt.bar(years, closed_access_pubs_in_year, color = 'red', align = 'center')
+pub2 = plt.bar(years, open_access_pubs_in_year, color = 'green', align = 'center', bottom = closed_access_pubs_in_year)
+plt.yticks(numpy.arange(0, 170, 10))
+plt.xticks(years, year_labels, rotation = 'vertical')
+plt.legend((pub1[0], pub2[0]), ('Closed', 'Open'), loc = 'upper left', title = 'Access:')
+plt.xlabel('Article Publication Year')
+plt.ylabel('Number of Unique Articles')
+plt.title('Articles Accepted in CIViC')
+fig.savefig('CIViC_articles_pub_years.svg', format = 'svg')
+
+
+# Creates a horizontal bar chart, x-axis: Number of evidence records, y-axis: Author's Name
+number_of_top_authors = -50
+sorted_author_publication = sorted(author_publication_dict.items(), key = operator.itemgetter(1))[number_of_top_authors:]
+authors_x_ticks = []
+authors_labels = []
+authors_count = []
+for i in range(0, len(sorted_author_publication)):
+	authors_x_ticks.append(i)
+	authors_labels.append(str(sorted_author_publication[i][0]))
+	authors_count.append(int(sorted_author_publication[i][1]))
+fig = plt.figure()
+plt.barh(authors_x_ticks, authors_count)
+plt.yticks(authors_x_ticks, authors_labels)
+plt.ylabel('Authors')
+plt.xlabel('Number of Evidence Records')
+plt.title('Top 25 Authors mined in CIViC')
+fig.savefig('CIViC_authors_mined.svg', format = 'svg')
