@@ -1,6 +1,6 @@
 """This code queries the CIViC API for all evidence items, filters out duplicated pubmed IDs, and returns counts of all parameters listed along with pie chart summaries in svg format"""
 
-import json, requests, matplotlib, numpy, operator#, ggplot
+import json, requests, matplotlib, numpy, operator
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -290,47 +290,37 @@ for key,value in evidence.items():
 						top_drugs_clin_sign[0][drug_index] += 1
 
 
+
+
+
+######################################### SUPPLEMENTAL FIGURE 8 PANELS ###########################################################
+# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Evidence Level
 fig = plt.figure()
-x_offset = numpy.array([0.0] * len(journals_labels))
-for row in range(len(top_journal_evidence_type)):
-	plt.barh(x_ticks, top_journal_evidence_type[row], left = x_offset, color = evidence_type_colors[row])
-	x_offset = x_offset + top_journal_evidence_type[row]
-	plt.yticks(x_ticks, journals_labels)
-	plt.xticks(numpy.arange(0, 160, 10))
-plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_type_legend_colors)
-plt.ylabel('Journals')
+x_offset = numpy.array([0.0] * len(drugs_labels))
+for row in range(len(top_drugs_evidence_level)):
+	plt.barh(x_ticks, top_drugs_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
+	x_offset = x_offset + top_drugs_evidence_level[row]
+	plt.yticks(x_ticks, drugs_labels)
+	# plt.xticks(numpy.arange(0, 100, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_level_legend_colors)
+# plt.ylabel('Drugs')
 plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Journals mined in CIViC')
-fig.savefig('CIViC_journals_mined_evidence_type.svg', format = 'svg')
+# plt.title('Top 25 Drugs mined in CIViC')
+fig.savefig('CIViC_drugs_mined_evidence_level.svg', format = 'svg', transparent = True)
 
-
+# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Clinical Significance
 fig = plt.figure()
-x_offset = numpy.array([0.0] * len(journals_labels))
-for row in range(len(top_journal_evidence_level)):
-	plt.barh(x_ticks, top_journal_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
-	x_offset = x_offset + top_journal_evidence_level[row]
-	plt.yticks(x_ticks, journals_labels)
-	plt.xticks(numpy.arange(0, 160, 10))
-plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
-plt.ylabel('Journals')
+x_offset = numpy.array([0.0] * len(drugs_labels))
+for row in range(len(top_drugs_clin_sign)):
+	plt.barh(x_ticks, top_drugs_clin_sign[row], left = x_offset, color = clinical_significance_colors[row])
+	x_offset = x_offset + top_drugs_clin_sign[row]
+	plt.tick_params(axis = 'y', labelleft = 'off')
+	# plt.yticks(x_ticks, drugs_labels)
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = clinical_significance_legend_colors)
+# plt.ylabel('Drugs')
 plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Journals mined in CIViC')
-fig.savefig('CIViC_journals_mined_evidence_level.svg', format = 'svg')
-
-
-fig = plt.figure()
-x_offset = numpy.array([0.0] * len(journals_labels))
-for row in range(len(top_journal_trust_rating)):
-	plt.barh(x_ticks, top_journal_trust_rating[row], left = x_offset, color = trust_rating_colors[row])
-	x_offset = x_offset + top_journal_trust_rating[row]
-	plt.yticks(x_ticks, journals_labels)
-	plt.xticks(numpy.arange(0, 160, 10))
-plt.legend(fancybox = True, loc = 'lower right', title = 'Star Rating:', handles = trust_rating_legend_colors)
-plt.ylabel('Journals')
-plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Journals mined in CIViC')
-fig.savefig('CIViC_journals_mined_trust_ratings.svg', format = 'svg')
-
+# plt.title('Top 25 Drugs mined in CIViC')
+fig.savefig('CIViC_drugs_mined_clinical_significance.svg', format = 'svg', transparent = True)
 
 # Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Diseases, Broken down by Evidence Level
 fig = plt.figure()
@@ -339,13 +329,12 @@ for row in range(len(top_disease_evidence_level)):
 	plt.barh(x_ticks, top_disease_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
 	x_offset = x_offset + top_disease_evidence_level[row]
 	plt.yticks(x_ticks, disease_labels)
-	plt.xticks(numpy.arange(0, 240, 20))
+	plt.xticks(numpy.arange(10, 240, 20))
 plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
-plt.ylabel('Diseases')
+# plt.ylabel('Diseases')
 plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Diseases mined in CIViC')
-fig.savefig('CIViC_diseases_mined_evidence_level.svg', format = 'svg')
-
+# plt.title('Top 25 Diseases mined in CIViC')
+fig.savefig('CIViC_diseases_mined_evidence_level.svg', format = 'svg', transparent = True)
 
 # Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Diseases, Broken down by Evidence Type
 fig = plt.figure()
@@ -353,162 +342,21 @@ x_offset = numpy.array([0.0] * len(disease_labels))
 for row in range(len(top_disease_evidence_type)):
 	plt.barh(x_ticks, top_disease_evidence_type[row], left = x_offset, color = evidence_type_colors[row])
 	x_offset = x_offset + top_disease_evidence_type[row]
-	plt.yticks(x_ticks, disease_labels)
-	plt.xticks(numpy.arange(0, 240, 20))
+	plt.tick_params(axis = 'y', labelleft = 'off')
+	# plt.yticks(x_ticks, disease_labels)
+	plt.xticks(numpy.arange(10, 240, 20))
 plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_type_legend_colors)
-plt.ylabel('Diseases')
+# plt.ylabel('Diseases')
 plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Diseases mined in CIViC')
-fig.savefig('CIViC_diseases_mined_evidence_type.svg', format = 'svg')
-
-
-# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Evidence Level
-fig = plt.figure()
-x_offset = numpy.array([0.0] * len(drugs_labels))
-for row in range(len(top_drugs_evidence_level)):
-	plt.barh(x_ticks, top_drugs_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
-	x_offset = x_offset + top_drugs_evidence_level[row]
-	plt.yticks(x_ticks, drugs_labels)
-	plt.xticks(numpy.arange(0, 100, 10))
-plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_level_legend_colors)
-plt.ylabel('Drugs')
-plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Drugs mined in CIViC')
-fig.savefig('CIViC_drugs_mined_evidence_level.svg', format = 'svg')
-
-
-# Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Clinical Significance
-fig = plt.figure()
-x_offset = numpy.array([0.0] * len(drugs_labels))
-for row in range(len(top_drugs_clin_sign)):
-	plt.barh(x_ticks, top_drugs_clin_sign[row], left = x_offset, color = clinical_significance_colors[row])
-	x_offset = x_offset + top_drugs_clin_sign[row]
-	plt.yticks(x_ticks, drugs_labels)
-	plt.xticks(numpy.arange(0, 100, 10))
-plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = clinical_significance_legend_colors)
-plt.ylabel('Drugs')
-plt.xlabel('Number of Evidence Records')
-plt.title('Top 25 Drugs mined in CIViC')
-fig.savefig('CIViC_drugs_mined_clinical_significance.svg', format = 'svg')
+# plt.title('Top 25 Diseases mined in CIViC')
+fig.savefig('CIViC_diseases_mined_evidence_type.svg', format = 'svg', transparent = True)
+####################################################################################################
 
 
 
-# Creates a pie chart of evidence status
-print('Unique Evidence IDs: ' + str(sum(evidence_status_master)))
-print('\tAccepted: ' + str(evidence_status_master[0]))
-print('\tRejected: ' + str(evidence_status_master[1]))
-print('\tSubmitted: ' + str(evidence_status_master[2]) + '\n')
-fig = plt.figure()
-plt.pie(evidence_status_master, labels = ['Accepted', 'Rejected', 'Submitted'], colors = ['green', 'red', 'orange'], autopct='%1.1f%%', pctdistance = 0.65)
-plt.axis('equal')
-plt.title('Total Evidence Status (' + str(sum(evidence_status_master)) + ')')
-fig.savefig('CIViC_evidence_status.svg', format = 'svg')
 
 
-# Creates a pie chart of evidence type for only ACCEPTED and SUBMITTED evidence records
-print('All stats from now on only take into account unique accepted or submitted journals with evidence items')
-print('\nEvidence Type Total: ' + str(sum(evidence_type_master)))
-print('\tPrognostic: ' + str(evidence_type_master[0]))
-print('\tDiagnostic: ' + str(evidence_type_master[1]))
-print('\tPredictive: ' + str(evidence_type_master[2]))
-fig = plt.figure()
-plt.pie(evidence_type_master, labels = ['Prognostic', 'Diagnostic', 'Predictive'], colors = ['#037737', '#f15a24', '#0000ff'], autopct='%1.1f%%', startangle = 90)
-plt.axis('equal')
-plt.title('Total Evidence Type (' + str(sum(evidence_type_master)) + ')')
-fig.savefig('CIViC_evidence_type.svg', format = 'svg')
-
-
-# Creates a pie chart of clinical significance for only ACCEPTED and SUBMITTED evidence records
-print('\nClinical Significance Total:' + str(sum(clinical_significance_master)))
-print('\tSensitivity: ' + str(clinical_significance_master[0]))
-print('\tAdverse Response: ' + str(clinical_significance_master[1]))
-print('\tResistance or Non-Response: ' + str(clinical_significance_master[2]))
-print('\tNegative: ' + str(clinical_significance_master[3]))
-print('\tPositive: ' + str(clinical_significance_master[4]))
-print('\tBetter Outcome: ' + str(clinical_significance_master[5]))
-print('\tPoor Outcome: ' + str(clinical_significance_master[6]))
-print('\tN/A: ' + str(clinical_significance_master[7]))
-fig = plt.figure()
-plt.pie(clinical_significance_master, labels = ['Sensitivity', 'Adverse Response', 'Resistance or Non-Response', 'Negative', 'Positive', 'Better Outcome', 'Poor Outcome', 'N/A'], autopct = '%1.1f%%', pctdistance=0.9, labeldistance=1.1, startangle = 40, colors = ['#87cefa', '#800080', '#e0ffff', '#fbb03b', '#ffff00', '#c2f73e', '#04ad04', '#b3b3b3'])
-plt.axis('equal')
-plt.title('Total Clinical Significance (' + str(sum(clinical_significance_master)) + ')')
-fig.savefig('CIViC_clinical_significance.svg', format = 'svg')
-
-
-# Creates a pie chart of evidence direction for only ACCEPTED and SUBMITTED evidence records
-print('\nEvidence direction Total: ' + str(sum(evidence_direction_master)))
-print('\tSupports: ' + str(evidence_direction_master[0]))
-print('\tDoes Not Support: ' + str(evidence_direction_master[1]))
-fig = plt.figure()
-plt.pie(evidence_direction_master, labels = ['Supports', 'Does Not Support'], colors = ['green', 'red'], autopct='%1.1f%%', startangle = 180)
-plt.axis('equal')
-plt.title('Total Evidence Direction (' + str(sum(evidence_direction_master)) + ')')
-fig.savefig('CIViC_evidence_direction.svg', format = 'svg')
-
-
-# Creates a pie chart of trust ratings for only ACCEPTED and SUBMITTED evidence records
-print('\nTrust Ratings Total: ' + str(sum(trust_rating_master)))
-print('\tTrust 1: ' + str(trust_rating_master[0]))
-print('\tTrust 2: ' + str(trust_rating_master[1]))
-print('\tTrust 3: ' + str(trust_rating_master[2]))
-print('\tTrust 4: ' + str(trust_rating_master[3]))
-print('\tTrust 5: ' + str(trust_rating_master[4]))
-fig = plt.figure()
-plt.pie(trust_rating_master, labels = ['1 Star', '2 Star', '3 Star', '4 Star', '5 Star'], colors = trust_rating_colors, autopct='%1.1f%%')
-plt.axis('equal')
-plt.title('Total Trust Ratings (' + str(sum(trust_rating_master)) + ')')
-fig.savefig('CIViC_trust_ratings.svg', format = 'svg')
-
-
-# Creates a pie chart of evidence level for only ACCEPTED and SUBMITTED evidence records
-print('\nEvidence Level Total: ' + str(sum(evidence_level_master)))
-print('\tA (Validated): ' + str(evidence_level_master[0]))
-print('\tB (Clinical): ' + str(evidence_level_master[1]))
-print('\tC (Case Study: ' + str(evidence_level_master[2]))
-print('\tD (Preclinical): ' + str(evidence_level_master[3]))
-print('\tE (Inferential): ' + str(evidence_level_master[4]))
-fig = plt.figure()
-plt.pie(evidence_level_master, labels = ['Validated\n(Level A)', 'Clinical\n(Level B)', 'Case study\n(Level C)', 'Preclinical\n(Level D)', 'Inferential\n(Level E)'], colors = evidence_level_colors[::-1], autopct='%1.1f%%')
-plt.axis('equal')
-plt.title('Total Evidence Level (' + str(sum(evidence_level_master)) + ')')
-fig.savefig('CIViC_evidence_level.svg', format = 'svg')
-
-
-# Creates a pie chart of variant origin for only ACCEPTED and SUBMITTED evidence records
-print('\nVariant Origin Total: ' + str(sum(variant_origin_master)))
-print('\tGermline Mutation: ' + str(variant_origin_master[0]))
-print('\tSomatic Mutation: ' + str(variant_origin_master[1]))
-print('\tGermline Polymorphism: ' + str(variant_origin_master[2]))
-print('\tUnknown: ' + str(variant_origin_master[3]))
-print('\tN/A: ' + str(variant_origin_master[4]))
-fig = plt.figure()
-plt.pie(variant_origin_master, labels = ['Germline Mutation', 'Somatic Mutation', 'Germline Polymorphism', 'Unknown', 'N/A'], colors = ['#e0ffff', '#87cefa', '#08b1e6', '#0016b2', '#b3b3b3'], autopct='%1.1f%%')
-plt.axis('equal')
-plt.title('Total Variant Origin (' + str(sum(trust_rating_master)) + ')')
-fig.savefig('CIViC_variant_origin.svg', format = 'svg')
-
-
-# Creates a bar chart, x-axis: Number of Evidence Records, y-axis: Number of Publications
-evid_vs_pub_list = {}
-for key,value in publications.items():
-	if value not in evid_vs_pub_list:
-		evid_vs_pub_list[value] = 1
-	else:
-		evid_vs_pub_list[value] += 1
-evid_vs_pub_list_x_ticks = []
-evid_vs_pub_list_counts = []
-sorted_evid_vs_pub_list = sorted(evid_vs_pub_list.items(), key = operator.itemgetter(0))
-for i in range(0, len(sorted_evid_vs_pub_list)):
-	evid_vs_pub_list_x_ticks.append(sorted_evid_vs_pub_list[i][0])
-	evid_vs_pub_list_counts.append(sorted_evid_vs_pub_list[i][1])
-fig = plt.figure()
-plt.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center')
-plt.title('Articles Accepted in CIViC')
-plt.xlabel('Number of Evidence Records')
-plt.ylabel('Number of Publications')
-fig.savefig('CIViC_evidence_vs_publications.svg', format = 'svg')
-
-
+######################################### SUPPLEMENTAL FIGURE 9 PANELS ###########################################################
 author_publication_dict = {}
 open_access_pubs = {}
 closed_access_pubs = {}
@@ -578,10 +426,173 @@ plt.xticks(years, year_labels, rotation = 'vertical')
 plt.legend((pub1[0], pub2[0]), ('Closed', 'Open'), loc = 'upper left', title = 'Access:')
 plt.xlabel('Article Publication Year')
 plt.ylabel('Number of Unique Articles')
-plt.title('Articles Accepted in CIViC')
-fig.savefig('CIViC_articles_pub_years.svg', format = 'svg')
+# plt.title('Articles Accepted in CIViC')
+fig.savefig('CIViC_articles_pub_years.svg', format = 'svg', transparent = True)
+
+# Creates a bar chart, x-axis: Number of Evidence Records, y-axis: Number of Publications
+evid_vs_pub_list = {}
+for key,value in publications.items():
+	if value not in evid_vs_pub_list:
+		evid_vs_pub_list[value] = 1
+	else:
+		evid_vs_pub_list[value] += 1
+evid_vs_pub_list_x_ticks = []
+evid_vs_pub_list_counts = []
+sorted_evid_vs_pub_list = sorted(evid_vs_pub_list.items(), key = operator.itemgetter(0))
+for i in range(0, len(sorted_evid_vs_pub_list)):
+	evid_vs_pub_list_x_ticks.append(sorted_evid_vs_pub_list[i][0])
+	evid_vs_pub_list_counts.append(sorted_evid_vs_pub_list[i][1])
+fig = plt.figure()
+plt.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center', color = '#3a53a4')
+# plt.title('Articles Accepted in CIViC')
+plt.xlabel('Number of Evidence Records')
+plt.ylabel('Number of Publications')
+fig.savefig('CIViC_evidence_vs_publications.svg', format = 'svg', transparent = True)
+
+fig = plt.figure()
+x_offset = numpy.array([0.0] * len(journals_labels))
+for row in range(len(top_journal_trust_rating)):
+	plt.barh(x_ticks, top_journal_trust_rating[row], left = x_offset, color = trust_rating_colors[row])
+	x_offset = x_offset + top_journal_trust_rating[row]
+	plt.yticks(x_ticks, journals_labels)
+	plt.xticks(numpy.arange(10, 160, 20))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Star Rating:', handles = trust_rating_legend_colors)
+# plt.ylabel('Journals')
+plt.xlabel('Number of Evidence Records')
+# plt.title('Top 25 Journals mined in CIViC')
+fig.savefig('CIViC_journals_mined_trust_ratings.svg', format = 'svg', transparent = True)
+
+fig = plt.figure()
+x_offset = numpy.array([0.0] * len(journals_labels))
+for row in range(len(top_journal_evidence_level)):
+	plt.barh(x_ticks, top_journal_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
+	x_offset = x_offset + top_journal_evidence_level[row]
+	plt.tick_params(axis = 'y', labelleft = 'off')
+	# plt.yticks(x_ticks, journals_labels)
+	plt.xticks(numpy.arange(10, 160, 20))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
+# plt.ylabel('Journals')
+plt.xlabel('Number of Evidence Records')
+# plt.title('Top 25 Journals mined in CIViC')
+fig.savefig('CIViC_journals_mined_evidence_level.svg', format = 'svg', transparent = True)
+
+fig = plt.figure()
+x_offset = numpy.array([0.0] * len(journals_labels))
+for row in range(len(top_journal_evidence_type)):
+	plt.barh(x_ticks, top_journal_evidence_type[row], left = x_offset, color = evidence_type_colors[row])
+	x_offset = x_offset + top_journal_evidence_type[row]
+	plt.yticks(x_ticks, journals_labels)
+	plt.xticks(numpy.arange(10, 160, 20))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_type_legend_colors)
+# plt.ylabel('Journals')
+plt.xlabel('Number of Evidence Records')
+# plt.title('Top 25 Journals mined in CIViC')
+fig.savefig('CIViC_journals_mined_evidence_type.svg', format = 'svg', transparent = True)
+####################################################################################################
 
 
+
+
+
+######################################### SUPPLEMENTAL FIGURE 7 PANELS ###########################################################
+# Removing the black outline of pie slices from all pie charts!
+plt.rcParams['patch.linewidth'] = 0 
+
+# Creates a pie chart of evidence status
+print('Unique Evidence IDs: ' + str(sum(evidence_status_master)))
+print('\tAccepted: ' + str(evidence_status_master[0]))
+print('\tRejected: ' + str(evidence_status_master[1]))
+print('\tSubmitted: ' + str(evidence_status_master[2]) + '\n')
+fig = plt.figure()
+plt.pie(evidence_status_master, labels = ['Accepted', 'Rejected', 'Submitted'], colors = ['green', 'red', 'orange'], autopct='%1.1f%%', pctdistance = 0.65)
+plt.axis('equal')
+# plt.title('Total Evidence Status (' + str(sum(evidence_status_master)) + ')')
+fig.savefig('CIViC_evidence_status.svg', format = 'svg', transparent = True)
+
+# Creates a pie chart of evidence type for only ACCEPTED and SUBMITTED evidence records
+print('All stats from now on only take into account unique accepted or submitted journals with evidence items')
+print('\nEvidence Type Total: ' + str(sum(evidence_type_master)))
+print('\tPrognostic: ' + str(evidence_type_master[0]))
+print('\tDiagnostic: ' + str(evidence_type_master[1]))
+print('\tPredictive: ' + str(evidence_type_master[2]))
+fig = plt.figure()
+plt.pie(evidence_type_master, labels = ['Prognostic', 'Diagnostic', 'Predictive'], colors = ['#037737', '#f15a24', '#0000ff'], autopct='%1.1f%%', startangle = 90)
+plt.axis('equal')
+# plt.title('Total Evidence Type (' + str(sum(evidence_type_master)) + ')')
+fig.savefig('CIViC_evidence_type.svg', format = 'svg', transparent = True)
+
+# Creates a pie chart of clinical significance for only ACCEPTED and SUBMITTED evidence records
+print('\nClinical Significance Total:' + str(sum(clinical_significance_master)))
+print('\tSensitivity: ' + str(clinical_significance_master[0]))
+print('\tAdverse Response: ' + str(clinical_significance_master[1]))
+print('\tResistance or Non-Response: ' + str(clinical_significance_master[2]))
+print('\tNegative: ' + str(clinical_significance_master[3]))
+print('\tPositive: ' + str(clinical_significance_master[4]))
+print('\tBetter Outcome: ' + str(clinical_significance_master[5]))
+print('\tPoor Outcome: ' + str(clinical_significance_master[6]))
+print('\tN/A: ' + str(clinical_significance_master[7]))
+fig = plt.figure()
+plt.pie(clinical_significance_master, labels = ['Sensitivity', 'Adverse\nResponse', 'Resistance', 'Negative', 'Positive', 'Better\nOutcome', 'Poor\nOutcome', 'N/A'], autopct = '%1.1f%%', pctdistance=0.9, labeldistance=1.1, startangle = 40, colors = ['#87cefa', '#800080', '#e0ffff', '#fbb03b', '#ffff00', '#c2f73e', '#04ad04', '#b3b3b3'])
+plt.axis('equal')
+# plt.title('Total Clinical Significance (' + str(sum(clinical_significance_master)) + ')')
+fig.savefig('CIViC_clinical_significance.svg', format = 'svg', transparent = True)
+
+# Creates a pie chart of evidence direction for only ACCEPTED and SUBMITTED evidence records
+print('\nEvidence direction Total: ' + str(sum(evidence_direction_master)))
+print('\tSupports: ' + str(evidence_direction_master[0]))
+print('\tDoes Not Support: ' + str(evidence_direction_master[1]))
+fig = plt.figure()
+plt.pie(evidence_direction_master, labels = ['Supports', 'Does Not\nSupport'], colors = ['green', 'red'], autopct='%1.1f%%', startangle = 180)
+plt.axis('equal')
+# plt.title('Total Evidence Direction (' + str(sum(evidence_direction_master)) + ')')
+fig.savefig('CIViC_evidence_direction.svg', format = 'svg', transparent = True)
+
+# Creates a pie chart of trust ratings for only ACCEPTED and SUBMITTED evidence records
+print('\nTrust Ratings Total: ' + str(sum(trust_rating_master)))
+print('\tTrust 1: ' + str(trust_rating_master[0]))
+print('\tTrust 2: ' + str(trust_rating_master[1]))
+print('\tTrust 3: ' + str(trust_rating_master[2]))
+print('\tTrust 4: ' + str(trust_rating_master[3]))
+print('\tTrust 5: ' + str(trust_rating_master[4]))
+fig = plt.figure()
+plt.pie(trust_rating_master, labels = ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'], colors = trust_rating_colors, autopct='%1.1f%%')
+plt.axis('equal')
+# plt.title('Total Trust Ratings (' + str(sum(trust_rating_master)) + ')')
+fig.savefig('CIViC_trust_ratings.svg', format = 'svg', transparent = True)
+
+# Creates a pie chart of evidence level for only ACCEPTED and SUBMITTED evidence records
+print('\nEvidence Level Total: ' + str(sum(evidence_level_master)))
+print('\tA (Validated): ' + str(evidence_level_master[0]))
+print('\tB (Clinical): ' + str(evidence_level_master[1]))
+print('\tC (Case Study: ' + str(evidence_level_master[2]))
+print('\tD (Preclinical): ' + str(evidence_level_master[3]))
+print('\tE (Inferential): ' + str(evidence_level_master[4]))
+fig = plt.figure()
+plt.pie(evidence_level_master, labels = ['Validated\n(Level A)', 'Clinical\n(Level B)', 'Case study\n(Level C)', 'Preclinical\n(Level D)', 'Inferential\n(Level E)'], colors = evidence_level_colors[::-1], autopct='%1.1f%%')
+plt.axis('equal')
+# plt.title('Total Evidence Level (' + str(sum(evidence_level_master)) + ')')
+fig.savefig('CIViC_evidence_level.svg', format = 'svg', transparent = True)
+
+# Creates a pie chart of variant origin for only ACCEPTED and SUBMITTED evidence records
+print('\nVariant Origin Total: ' + str(sum(variant_origin_master)))
+print('\tGermline Mutation: ' + str(variant_origin_master[0]))
+print('\tSomatic Mutation: ' + str(variant_origin_master[1]))
+print('\tGermline Polymorphism: ' + str(variant_origin_master[2]))
+print('\tUnknown: ' + str(variant_origin_master[3]))
+print('\tN/A: ' + str(variant_origin_master[4]))
+fig = plt.figure()
+plt.pie(variant_origin_master, labels = ['Germline\nMutation', 'Somatic\nMutation', 'Germline\nPolymorphism', 'Unknown', 'N/A'], colors = ['#e0ffff', '#87cefa', '#08b1e6', '#0016b2', '#b3b3b3'], autopct='%1.1f%%')
+plt.axis('equal')
+# plt.title('Total Variant Origin (' + str(sum(trust_rating_master)) + ')')
+fig.savefig('CIViC_variant_origin.svg', format = 'svg', transparent = True)
+####################################################################################################
+
+
+
+
+
+######################################### EXTRA CIViC STAT FIGURES ###########################################################
+"""
 # Creates a horizontal bar chart, x-axis: Number of evidence records, y-axis: Author's Name
 number_of_top_authors = -50
 sorted_author_publication = sorted(author_publication_dict.items(), key = operator.itemgetter(1))[number_of_top_authors:]
@@ -598,4 +609,6 @@ plt.yticks(authors_x_ticks, authors_labels)
 plt.ylabel('Authors')
 plt.xlabel('Number of Evidence Records')
 plt.title('Top 25 Authors mined in CIViC')
-fig.savefig('CIViC_authors_mined.svg', format = 'svg')
+fig.savefig('CIViC_authors_mined.svg', format = 'svg', transparent = True)
+"""
+####################################################################################################
