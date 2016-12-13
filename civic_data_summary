@@ -12,7 +12,7 @@ evidence_level_colors = ['#e24759', '#f68f37', '#616eb2', '#08b1e6', '#33b358']
 # 1 Star -> 5 Stars
 trust_rating_colors = ['#ed2224', '#faa51a', '#f6eb16', '#9bcb3c', '#0f8140']
 # Predictive, Prognostic, Diagnostic, Predisposing
-evidence_type_colors = ['#0000ff', '#037737', '#f15a24', '#f0f024']
+evidence_type_colors = ['#0000ff', '#037737', '#f15a24', '#e513c5']
 # Somatic mutations, N/A, Germline Polymorphism, Germline Mutation, Unknown
 variant_origin_colors = ['#87cefa', '#b3b3b3', '#08b1e6', '#e0ffff', '#0016b2']
 
@@ -327,7 +327,7 @@ for key,value in evidence.items():
 
 
 
-######################################### SUPPLEMENTAL FIGURE 8 PANELS ###########################################################
+######################################## SUPPLEMENTAL FIGURE 8 PANELS ###########################################################
 # Creates a stacked horizontal bar chart, x-axis: Number of Evidence Records, y-axis: Drugs, Broken down by Evidence Level
 fig = plt.figure()
 x_offset = numpy.array([0.0] * len(drugs_labels))
@@ -335,8 +335,8 @@ for row in range(len(top_drugs_evidence_level)):
 	plt.barh(x_ticks, top_drugs_evidence_level[row], left = x_offset, color = evidence_level_colors[row])
 	x_offset = x_offset + top_drugs_evidence_level[row]
 	plt.yticks(x_ticks, drugs_labels)
-	# plt.xticks(numpy.arange(0, 100, 10))
-plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_level_legend_colors)
+	plt.xticks(numpy.arange(10, 110, 10))
+plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
 # plt.ylabel('Drugs')
 plt.xlabel('Number of Evidence Records')
 # plt.title('Top 25 Drugs mined in CIViC')
@@ -349,8 +349,9 @@ for row in range(len(top_drugs_clin_sign)):
 	plt.barh(x_ticks, top_drugs_clin_sign[row], left = x_offset, color = clinical_significance_colors[row])
 	x_offset = x_offset + top_drugs_clin_sign[row]
 	plt.tick_params(axis = 'y', labelleft = 'off')
+	plt.xticks(numpy.arange(10, 110, 10))
 	# plt.yticks(x_ticks, drugs_labels)
-plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = clinical_significance_legend_colors)
+plt.legend(fancybox = True, loc = 'lower right', title = 'Clinical Significance:', handles = clinical_significance_legend_colors)
 # plt.ylabel('Drugs')
 plt.xlabel('Number of Evidence Records')
 # plt.title('Top 25 Drugs mined in CIViC')
@@ -384,14 +385,13 @@ plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handl
 plt.xlabel('Number of Evidence Records')
 # plt.title('Top 25 Diseases mined in CIViC')
 fig.savefig('CIViC_diseases_mined_evidence_type.svg', format = 'svg', transparent = True)
-####################################################################################################
+###################################################################################################
 
 
 
 
 
-######################################### SUPPLEMENTAL FIGURE 9 PANELS ###########################################################
-
+######################################## SUPPLEMENTAL FIGURE 9 PANELS ###########################################################
 author_publication_dict = {}
 open_access_pubs = {}
 closed_access_pubs = {}
@@ -464,7 +464,8 @@ plt.ylabel('Number of Unique Articles')
 # plt.title('Articles Accepted in CIViC')
 fig.savefig('CIViC_articles_pub_years.svg', format = 'svg', transparent = True)
 
-# Creates a bar chart, x-axis: Number of Evidence Records, y-axis: Number of Publications
+
+# Creates a broken (discontineous) bar chart, x-axis: Number of Evidence Records, y-axis: Number of Publications
 evid_vs_pub_list = {}
 for key,value in publications.items():
 	if value not in evid_vs_pub_list:
@@ -478,11 +479,49 @@ for i in range(0, len(sorted_evid_vs_pub_list)):
 	evid_vs_pub_list_x_ticks.append(sorted_evid_vs_pub_list[i][0])
 	evid_vs_pub_list_counts.append(sorted_evid_vs_pub_list[i][1])
 fig = plt.figure()
-plt.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center', color = '#3a53a4')
+ylim  = [180, 800]
+ylim2 = [0, 50]
+# The ratio (ylimratio and ylim2ratio) size determines the amount of space each subplot takes up in the whole plot
+ylimratio = 0.50
+ylim2ratio = 0.50
+gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[ylimratio, ylim2ratio])
+fig = plt.figure()
+ax = fig.add_subplot(gs[0])
+ax2 = fig.add_subplot(gs[1])
+ax.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center', color = '#3a53a4')
+ax2.bar(evid_vs_pub_list_x_ticks, evid_vs_pub_list_counts, align = 'center', color = '#3a53a4')
+ax.set_ylim(ylim)
+ax2.set_ylim(ylim2)
+# This determines the size of the break (the visual gap)
+plt.subplots_adjust(hspace=0.1)
+# 
+ax.spines['bottom'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+ax.xaxis.tick_top()
+ax.tick_params(labeltop='off')
+ax2.xaxis.tick_bottom()
+# 
+ax2.set_xlabel('xlabel')
+ax2.set_ylabel('ylabel')
+ax2.yaxis.set_label_coords(0.05, 0.5, transform=fig.transFigure)
+# 
+kwargs = dict(color='k', clip_on=False)
+xlim = ax.get_xlim()
+dx = .02*(xlim[1]-xlim[0])
+dy = .01*(ylim[1]-ylim[0])/ylimratio
+ax.plot((xlim[0]-dx,xlim[0]+dx), (ylim[0]-dy,ylim[0]+dy), **kwargs)
+ax.plot((xlim[1]-dx,xlim[1]+dx), (ylim[0]-dy,ylim[0]+dy), **kwargs)
+dy = .01*(ylim2[1]-ylim2[0])/ylim2ratio
+ax2.plot((xlim[0]-dx,xlim[0]+dx), (ylim2[1]-dy,ylim2[1]+dy), **kwargs)
+ax2.plot((xlim[1]-dx,xlim[1]+dx), (ylim2[1]-dy,ylim2[1]+dy), **kwargs)
+ax.set_xlim(xlim)
+ax2.set_xlim(xlim)
 # plt.title('Articles Accepted in CIViC')
 plt.xlabel('Number of Evidence Records')
 plt.ylabel('Number of Publications')
+# fig.savefig('CIViC_evidence_vs_publications.png', format = 'png', transparent = True)
 fig.savefig('CIViC_evidence_vs_publications.svg', format = 'svg', transparent = True)
+
 
 fig = plt.figure()
 x_offset = numpy.array([0.0] * len(journals_labels))
@@ -490,12 +529,13 @@ for row in range(len(top_journal_trust_rating)):
 	plt.barh(x_ticks, top_journal_trust_rating[row], left = x_offset, color = trust_rating_colors[row])
 	x_offset = x_offset + top_journal_trust_rating[row]
 	plt.yticks(x_ticks, journals_labels)
-	plt.xticks(numpy.arange(10, 170, 20))
+	plt.xticks(numpy.arange(10, 190, 20))
 plt.legend(fancybox = True, loc = 'lower right', title = 'Star Rating:', handles = trust_rating_legend_colors)
 # plt.ylabel('Journals')
 plt.xlabel('Number of Evidence Records')
 # plt.title('Top 25 Journals mined in CIViC')
 fig.savefig('CIViC_journals_mined_trust_ratings.svg', format = 'svg', transparent = True)
+
 
 fig = plt.figure()
 x_offset = numpy.array([0.0] * len(journals_labels))
@@ -504,12 +544,13 @@ for row in range(len(top_journal_evidence_level)):
 	x_offset = x_offset + top_journal_evidence_level[row]
 	plt.tick_params(axis = 'y', labelleft = 'off')
 	plt.yticks(x_ticks, journals_labels)
-	plt.xticks(numpy.arange(10, 170, 20))
+	plt.xticks(numpy.arange(10, 190, 20))
 plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Level:', handles = evidence_level_legend_colors)
 # plt.ylabel('Journals')
 plt.xlabel('Number of Evidence Records')
 # plt.title('Top 25 Journals mined in CIViC')
 fig.savefig('CIViC_journals_mined_evidence_level.svg', format = 'svg', transparent = True)
+
 
 fig = plt.figure()
 x_offset = numpy.array([0.0] * len(journals_labels))
@@ -517,19 +558,19 @@ for row in range(len(top_journal_evidence_type)):
 	plt.barh(x_ticks, top_journal_evidence_type[row], left = x_offset, color = evidence_type_colors[row])
 	x_offset = x_offset + top_journal_evidence_type[row]
 	plt.yticks(x_ticks, journals_labels)
-	plt.xticks(numpy.arange(10, 170, 20))
+	plt.xticks(numpy.arange(10, 190, 20))
 plt.legend(fancybox = True, loc = 'lower right', title = 'Evidence Type:', handles = evidence_type_legend_colors)
 # plt.ylabel('Journals')
 plt.xlabel('Number of Evidence Records')
 # plt.title('Top 25 Journals mined in CIViC')
 fig.savefig('CIViC_journals_mined_evidence_type.svg', format = 'svg', transparent = True)
-####################################################################################################
+###################################################################################################
 
 
 
 
 
-######################################### SUPPLEMENTAL FIGURE 7 PANELS ###########################################################
+######################################## SUPPLEMENTAL FIGURE 7 PANELS ###########################################################
 # Removing the black outline of pie slices from all pie charts!
 plt.rcParams['patch.linewidth'] = 0 
 
@@ -621,13 +662,13 @@ plt.pie(variant_origin_master, labels = ['Germline\nMutation', 'Somatic\nMutatio
 plt.axis('equal')
 # plt.title('Total Variant Origin (' + str(sum(trust_rating_master)) + ')')
 fig.savefig('CIViC_variant_origin.svg', format = 'svg', transparent = True)
-####################################################################################################
+###################################################################################################
 
 
 
 
 
-######################################### EXTRA CIViC STAT FIGURES ###########################################################
+######################################## EXTRA CIViC STAT FIGURES ###########################################################
 
 # Creates a horizontal bar chart, x-axis: Number of evidence records, y-axis: Author's Name
 number_of_top_authors = -50
@@ -647,4 +688,4 @@ plt.xlabel('Number of Evidence Records')
 plt.title('Top 25 Authors mined in CIViC')
 fig.savefig('CIViC_authors_mined.svg', format = 'svg', transparent = True)
 
-####################################################################################################
+###################################################################################################
